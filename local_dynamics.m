@@ -1,5 +1,5 @@
 % Describing the dynamics
-function nt= local_dynamics(t,ni,rho_a, rho_p, na, ntotal, h, theta_ik, gammaik, betaik)
+function nt= local_dynamics(t,ni,rho_a, rho_p, na, ntotal,theta, h,nt,num,den)
 %{
 Local dynamics: Lotka-Volterra equation with holling type II functional
 response.The mutualistic and competitive interactions are proportional to the niche
@@ -15,38 +15,20 @@ gammaik: mutualistic matrix
 betaik: competition matrix
 %}
 
-    nt=zeros(1,ntotal);
-    for i=1:ntotal
-        if (i <= na) % for users (animals) especies
-            competition_a=0.;
-            for j=1:na
-                competition_a=competition_a+betaik(i,j)*ni(j);
-            end
-            num=0.;
-            theta_nk=0.;
-            for k=na+1:ntotal
-                num=num+gammaik(i,k)*ni(k);
-                theta_nk=theta_nk+theta_ik(i,k)*ni(k);
-            end
-            mutualism_a=num /(1. + h*theta_nk);
-            n_animal=ni(i)*(rho_a - competition_a + mutualism_a);
-            nt(i)=n_animal; 
-        else %for hashtags (plants)
-            competition_p=0.;
-            for j=na+1:ntotal
-                competition_p=competition_p+betaik(i,j)*ni(j);
-            end
-            nump=0.;
-            theta_nkp=0.;
-            for k=1:na
-                nump=nump+gammaik(i,k)*ni(k);
-                theta_nkp=theta_nkp+theta_ik(i,k)*ni(k);
-            end
-            %lotka-volterra equations
-            mutualism_p=nump /(1. + h*theta_nkp);
-            n_plant=ni(i)*(rho_p - competition_p + mutualism_p);
-            nt(i)=n_plant;
-        end
-    end
-    nt=nt';
+%     nt=zeros(ntotal,1);
+%     num=zeros(ntotal,1);
+%     den=zeros(ntotal,1);
+    global gamma_ap;
+    global beta_aa;
+    global beta_pp;
+    num(1:na) = gamma_ap*ni(na+1:ntotal);
+    num(na+1:ntotal) = ((ni(1:na)')*gamma_ap)';
+   
+    
+    den(1:na) = 1+h*theta*ni(na+1:ntotal);
+    den(na+1:ntotal) = 1+h*(theta')*ni(1:na);
+    mutualism = num./den;
+   
+    nt(1:na)=ni(1:na).*(rho_a - beta_aa*ni(1:na) + mutualism(1:na));
+    nt(na+1:ntotal)=ni(na+1:ntotal).*( rho_p - beta_pp*ni(na+1:ntotal) + mutualism(na+1:end));
 end
